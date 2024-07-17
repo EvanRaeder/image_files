@@ -24,7 +24,7 @@ fn main() {
         data.push(0);
     }
     // create a new vector of 8bit chunks
-    let mut data = data.chunks(8).map(|chunk| {
+    let data = data.chunks(8).map(|chunk| {
         let mut byte = 0;
         for (i, bit) in chunk.iter().enumerate() {
             byte |= (*bit as u8) << i;
@@ -32,7 +32,7 @@ fn main() {
         byte
     }).collect::<Vec<u8>>();
     //get data into vecs of 4 u8s
-    let mut data = data.chunks(4).map(|chunk| {
+    let data = data.chunks(4).map(|chunk| {
         let mut byte = [0; 4];
         for (i, bit) in chunk.iter().enumerate() {
             byte[i] = *bit;
