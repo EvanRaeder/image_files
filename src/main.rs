@@ -1,7 +1,7 @@
-use std::{f64};
+use std::f64;
 
-fn file_size(bits: f64) -> (f64, f64) {
-    let size = bits/32.0;
+fn file_size(bytes: f64) -> (f64, f64) {
+    let size = bytes/4.0;
     let length = f64::ceil(f64::sqrt(size));
     let width = f64::ceil(f64::sqrt(size));
     (length, width)
@@ -11,12 +11,6 @@ fn file_size(bits: f64) -> (f64, f64) {
 fn main() {    
     //get data from the zip file
     let mut data = std::fs::read("test.zip").unwrap();
-    //print the last 20 bytes
-    let last_500 = &data[data.len() - 5000..];
-    //convert to 1 and 0 in utf-8
-    let last_500 = last_500.iter().map(|&x| format!("{:08b}", x)).collect::<String>();
-    //write the data to a text file
-    std::fs::write("test1.txt", last_500).unwrap();
     //get the length of the data in bits
     let length_bit = data.len() as f64;
     let (length, width) = file_size(length_bit as f64);
@@ -32,6 +26,8 @@ fn main() {
         }
         byte
     }).collect::<Vec<[u8; 4]>>();
+    //make sure len of data is smaller than number of pixels
+    assert!(data.len() <= (length * width) as usize);
     //create a new image buffer
     let mut img = img.to_rgba8();
     //for each pixel in the image buffer set values of rgba to the four u8s
@@ -58,17 +54,11 @@ fn main() {
     //create a new vector of 4 u8s
     let mut data = Vec::new();
     //for each pixel in the image buffer get the rgba values and push them to the data vector
-    for (x, y, pixel) in img.enumerate_pixels() {
+    for (_x, _y, pixel) in img.enumerate_pixels() {
         data.push([pixel[0], pixel[1], pixel[2], pixel[3]]);
     }
     //convert data into a vector of u8s
     let data = data.iter().flat_map(|pixel| pixel.iter().cloned()).collect::<Vec<u8>>();
-    //print the last 20 bytes
-    let last_500 = &data[data.len() - 5000..];
-    //convert to 1 and 0 in utf-8
-    let last_500 = last_500.iter().map(|&x| format!("{:08b}", x)).collect::<String>();
-    //write the data to a text file
-    std::fs::write("test2.txt", last_500).unwrap();
     //find the index of the last stop code at the end of the data
     let stop_index = data.iter().rposition(|&x| x == 0b11111111).unwrap();
     //remove the stop code and the extra bits
