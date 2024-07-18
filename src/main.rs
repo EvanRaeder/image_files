@@ -10,28 +10,21 @@ fn file_size(bits: f64) -> (f64, f64) {
 
 fn main() {    
     //get data from the zip file
-    let data = std::fs::read("test.zip").unwrap();
-    let length_bit = data.len();
-    println!("size: {}", length_bit);
+    let mut data = std::fs::read("test.zip").unwrap();
+    //print the last 20 bytes
+    let last_500 = &data[data.len() - 5000..];
+    //convert to 1 and 0 in utf-8
+    let last_500 = last_500.iter().map(|&x| format!("{:08b}", x)).collect::<String>();
+    //write the data to a text file
+    std::fs::write("test1.txt", last_500).unwrap();
+    //get the length of the data in bits
+    let length_bit = data.len() as f64;
     let (length, width) = file_size(length_bit as f64);
     println!("Length: {}, Width: {}", length, width);
     let img = image::DynamicImage::new_rgb8(length as u32, width as u32);
     //add a binary stop code to the data
-    let mut data = data.to_vec();
     data.push(0b11111111);
-    //make sure the data is a multiple of 32 bits
-    while data.len() % 32 != 0 {
-        data.push(0);
-    }
-    // create a new vector of 8bit chunks
-    let data = data.chunks(8).map(|chunk| {
-        let mut byte = 0;
-        for (i, bit) in chunk.iter().enumerate() {
-            byte |= (*bit as u8) << i;
-        }
-        byte
-    }).collect::<Vec<u8>>();
-    //get data into vecs of 4 u8s
+    //get data into vecs of 4 bytes
     let data = data.chunks(4).map(|chunk| {
         let mut byte = [0; 4];
         for (i, bit) in chunk.iter().enumerate() {
@@ -39,9 +32,6 @@ fn main() {
         }
         byte
     }).collect::<Vec<[u8; 4]>>();
-    println!("{:?}", data.len());
-    //allign the data to the length and width of the image
-
     //create a new image buffer
     let mut img = img.to_rgba8();
     //for each pixel in the image buffer set values of rgba to the four u8s
@@ -60,4 +50,30 @@ fn main() {
     println!("DONE SAVE");
 
 
+    //\\WRITE//\\
+
+    //read the image buffer from the png file
+    let img = image::open("test.png").unwrap();
+    let img = img.to_rgba8();
+    //create a new vector of 4 u8s
+    let mut data = Vec::new();
+    //for each pixel in the image buffer get the rgba values and push them to the data vector
+    for (x, y, pixel) in img.enumerate_pixels() {
+        data.push([pixel[0], pixel[1], pixel[2], pixel[3]]);
+    }
+    //convert data into a vector of u8s
+    let data = data.iter().flat_map(|pixel| pixel.iter().cloned()).collect::<Vec<u8>>();
+    //print the last 20 bytes
+    let last_500 = &data[data.len() - 5000..];
+    //convert to 1 and 0 in utf-8
+    let last_500 = last_500.iter().map(|&x| format!("{:08b}", x)).collect::<String>();
+    //write the data to a text file
+    std::fs::write("test2.txt", last_500).unwrap();
+    //find the index of the last stop code at the end of the data
+    let stop_index = data.iter().rposition(|&x| x == 0b11111111).unwrap();
+    //remove the stop code and the extra bits
+    let data = &data[..stop_index];
+    //write the data back to the zip file
+    std::fs::write("test2.zip", data).unwrap();
+    println!("DONE WRITE");
 }
