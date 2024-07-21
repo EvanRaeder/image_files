@@ -1,5 +1,7 @@
 use std::{f64, process::exit};
 
+use image::ImageBuffer;
+
 //\\Get the correct image size for the file//\\
 fn file_size(bytes: f64) -> (f64, f64) {
     let size = bytes/4.0;
@@ -8,17 +10,22 @@ fn file_size(bytes: f64) -> (f64, f64) {
     (length, width)
 }
 //\\Encode the file into the image//\\
-fn encode_file(in_file: &str) {
+fn convert_file(in_file: &str) {
     //get the file path
     let file = std::path::Path::new(in_file);
     let file_name = file.file_name().unwrap().to_str().unwrap().to_owned() + ".png";
+    let data = std::fs::read(file).unwrap();
     //get data from the zip file
-    let mut data = std::fs::read(file).unwrap();
+    let img = encode_data(data);
+    //write the image buffer to a png file
+    img.save(file_name).unwrap();
+}
+
+fn encode_data(mut data: Vec<u8>) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     //get the length of the data in bits
     let length_bit = data.len() as f64;
     let (length, width) = file_size(length_bit as f64);
     println!("Length: {}, Width: {}", length, width);
-    let img = image::DynamicImage::new_rgb8(length as u32, width as u32);
     //add a binary stop code to the data
     data.push(0b11111111);
     //get data into vecs of 4 bytes
@@ -31,8 +38,11 @@ fn encode_file(in_file: &str) {
     }).collect::<Vec<[u8; 4]>>();
     //sanity check: Remove
     assert!(data.len() <= (length * width) as usize);
+    let length = f64::sqrt(data.len() as f64);
+    let width = f64::ceil(data.len() as f64 / length);
+    let img = image::DynamicImage::new_rgb8(length as u32, width as u32);
     //create a new image buffer
-    let mut img = img.to_rgba8();
+    let mut img: ImageBuffer<image::Rgba<u8>, Vec<u8>> = img.to_rgba8();
     //for each pixel in the image buffer set values of rgba to the four u8s
     for (x, y, pixel) in img.enumerate_pixels_mut() {
         let index = (x + y * length as u32) as usize;
@@ -44,9 +54,7 @@ fn encode_file(in_file: &str) {
         }
     }
     println!("DONE WRITE");
-    //save the image buffer to a png file
-    img.save(file_name).unwrap();
-    println!("DONE SAVE");
+    img
 }
 
 //\\Decode the image into the file//\\
@@ -76,7 +84,7 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 2 {
         if args[1] == "-e" {
-            encode_file(&args[2]);
+            convert_file(&args[2]);
         } else if args[1] == "-d" {
             decode_img(&args[2], "output.zip");
         }
@@ -97,7 +105,7 @@ fn main() {
             let mut filename = String::new();
             std::io::stdin().read_line(&mut filename).unwrap();
             let filename = filename.trim();
-            encode_file(filename);
+            convert_file(filename);
             return;
         } else if choice == "d" {
             println!("Enter the path to filename to decode");
