@@ -1,16 +1,19 @@
-use std::f64;
+use std::{f64, process::exit};
 
+//\\Get the correct image size for the file//\\
 fn file_size(bytes: f64) -> (f64, f64) {
     let size = bytes/4.0;
     let length = f64::ceil(f64::sqrt(size));
     let width = f64::ceil(f64::sqrt(size));
     (length, width)
 }
-
-
-fn main() {    
+//\\Encode the file into the image//\\
+fn encode_file(in_file: &str) {
+    //get the file path
+    let file = std::path::Path::new(in_file);
+    let file_name = file.file_name().unwrap().to_str().unwrap().to_owned() + ".png";
     //get data from the zip file
-    let mut data = std::fs::read("test.zip").unwrap();
+    let mut data = std::fs::read(file).unwrap();
     //get the length of the data in bits
     let length_bit = data.len() as f64;
     let (length, width) = file_size(length_bit as f64);
@@ -26,7 +29,7 @@ fn main() {
         }
         byte
     }).collect::<Vec<[u8; 4]>>();
-    //make sure len of data is smaller than number of pixels
+    //sanity check: Remove
     assert!(data.len() <= (length * width) as usize);
     //create a new image buffer
     let mut img = img.to_rgba8();
@@ -42,14 +45,14 @@ fn main() {
     }
     println!("DONE WRITE");
     //save the image buffer to a png file
-    img.save("test.png").unwrap();
+    img.save(file_name).unwrap();
     println!("DONE SAVE");
+}
 
-
-    //\\WRITE//\\
-
+//\\Decode the image into the file//\\
+fn decode_img(in_file: &str, out_file: &str) {
     //read the image buffer from the png file
-    let img = image::open("test.png").unwrap();
+    let img = image::open(in_file).unwrap();
     let img = img.to_rgba8();
     //create a new vector of 4 u8s
     let mut data = Vec::new();
@@ -60,10 +63,51 @@ fn main() {
     //convert data into a vector of u8s
     let data = data.iter().flat_map(|pixel| pixel.iter().cloned()).collect::<Vec<u8>>();
     //find the index of the last stop code at the end of the data
-    let stop_index = data.iter().rposition(|&x| x == 0b11111111).unwrap();
+    let stop_index = data.iter().rposition(|&x| x == 0b11111111).unwrap(); //could be a one liner
     //remove the stop code and the extra bits
     let data = &data[..stop_index];
     //write the data back to the zip file
-    std::fs::write("test2.zip", data).unwrap();
+    std::fs::write(out_file, data).unwrap();
     println!("DONE WRITE");
+}
+    
+fn main() {
+    //if there are args provided if -e encode else if -d decode the given filename
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 2 {
+        if args[1] == "-e" {
+            encode_file(&args[2]);
+        } else if args[1] == "-d" {
+            decode_img(&args[2], "output.zip");
+        }
+        else {
+            //show the user how to use the program
+            println!("Usage: image_files.exe -e <filename> or image_files.exe -d <filename>");
+        }
+    }
+    else {
+        //start with UI
+        println!("Welcome to the image file encoder/decoder");
+        println!("Choose (e)ncode or (d)ecode");
+        let mut choice = String::new();
+        std::io::stdin().read_line(&mut choice).unwrap();
+        let choice = choice.trim();
+        if choice == "e" {
+            println!("Enter path to the filename to encode");
+            let mut filename = String::new();
+            std::io::stdin().read_line(&mut filename).unwrap();
+            let filename = filename.trim();
+            encode_file(filename);
+            return;
+        } else if choice == "d" {
+            println!("Enter the path to filename to decode");
+            let mut filename = String::new();
+            std::io::stdin().read_line(&mut filename).unwrap();
+            let filename = filename.trim();
+            decode_img(filename, "output.zip");
+            return;
+        } else {
+            println!("Invalid choice");
+        }
+    }
 }
