@@ -1,4 +1,4 @@
-use std::{f64, process::exit};
+use std::f64;
 
 use image::ImageBuffer;
 
