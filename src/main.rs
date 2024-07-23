@@ -8,6 +8,7 @@ fn file_size(bytes: f64) -> (f64, f64) {
     let width = f64::ceil(f64::sqrt(size));
     (length, width)
 }
+
 //\\Encode the file into the image//\\
 fn convert_file(in_file: &str) {
     //get the file path
@@ -19,7 +20,6 @@ fn convert_file(in_file: &str) {
     //write the image buffer to a png file
     img.save(file_name).unwrap();
 }
-
 fn encode_data(mut data: Vec<u8>) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     //get the length of the data in bits
     let length_bit = data.len() as f64;
