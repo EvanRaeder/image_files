@@ -17,7 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --verbose  --release
     - name: Run tests
       run: cargo test --verbose
     - name: Build archive
@@ -32,9 +32,9 @@ jobs:
         dirname="$binary_name-${{ env.VERSION }}-${{ matrix.target }}"
         mkdir "$dirname"
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          mv "target/${{ matrix.target }}/release/$binary_name.exe" "$dirname"
+          mv "D:\a\image_files\image_files\target\release\image_files.exe" "$dirname"
         else
-          mv "target/${{ matrix.target }}/release/$binary_name" "$dirname"
+          mv "D:\a\image_files\image_files\target\release\image_files.exe" "$dirname"
         fi
 
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
@@ -44,6 +44,7 @@ jobs:
           tar -czf "$dirname.tar.gz" "$dirname"
           echo "ASSET=$dirname.tar.gz" >> $GITHUB_ENV
         fi
+        
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
