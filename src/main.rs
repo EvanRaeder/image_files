@@ -1,5 +1,4 @@
 use std::f64;
-
 use image::ImageBuffer;
 
 //\\Get the correct image size for the file//\\
