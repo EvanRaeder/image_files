@@ -1,6 +1,23 @@
 use std::f64;
 use image::ImageBuffer;
 
+#[cfg(unix)]
+fn separator() -> &'static str {
+    "/"
+}
+#[cfg(unix)]
+fn zip_extension() -> &'static str {
+    ".tar.gz"
+}
+#[cfg(windows)]
+fn separator() -> &'static str {
+    "\\"
+}
+#[cfg(windows)]
+fn zip_extension() -> &'static str {
+    ".zip"
+}
+
 //\\Get the correct image size for the file//\\
 fn file_size(bytes: f64) -> (f64, f64) {
     let size = bytes/4.0;
@@ -13,12 +30,20 @@ fn file_size(bytes: f64) -> (f64, f64) {
 fn convert_file(in_file: &str) {
     //get the file path
     let file = std::path::Path::new(in_file);
-    let file_name = file.file_name().unwrap().to_str().unwrap().to_owned() + ".png";
+    let file_name = file.file_name().unwrap().to_str().unwrap().to_owned();
+    let dir_name = file.file_name().unwrap().to_str().unwrap().to_owned().split('.').collect::<Vec<&str>>()[0].to_owned();
+    std::fs::create_dir_all(&dir_name).unwrap();
     let data = std::fs::read(file).unwrap();
-    //get data from the zip file
-    let img = encode_data(data);
-    //write the image buffer to a png file
-    img.save(file_name).unwrap();
+    //split data into 100 mb chunks
+    let data = data.chunks(99900000).map(|chunk| chunk.to_vec()).collect::<Vec<Vec<u8>>>();
+    for (i, chunk) in data.iter().enumerate() {
+        let file_name = file_name.clone();
+        let file_name = file_name + &i.to_string() + ".png";
+        let file_name = dir_name.clone() + separator() + &file_name;
+        println!("Writing to: {}", file_name);
+        let img = encode_data(chunk.clone());
+        img.save(file_name).unwrap();
+    }
 }
 fn encode_data(mut data: Vec<u8>) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     //get the length of the data in bits
@@ -35,8 +60,8 @@ fn encode_data(mut data: Vec<u8>) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
         }
         byte
     }).collect::<Vec<[u8; 4]>>();
-    //sanity check: Remove
-    assert!(data.len() <= (length * width) as usize);
+    println!("Data length: {}", data.len()); 
+    assert!(data.len() <= (length * width) as usize);// DO NOT REMOVE UNDER ANY CIRCUMSTANCES
     let length = f64::sqrt(data.len() as f64);
     let width = f64::ceil(data.len() as f64 / length);
     let img = image::DynamicImage::new_rgb8(length as u32, width as u32);
@@ -82,6 +107,7 @@ fn decode_img(img: ImageBuffer<image::Rgba<u8>, Vec<u8>> ) -> Vec<u8> {
 }
     
 fn main() {
+    //check if unix or windows
     //if there are args provided if -e encode else if -d decode the given filename
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 2 {
