@@ -57,10 +57,14 @@ fn encode_data(mut data: Vec<u8>) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
 }
 
 //\\Decode the image into the file//\\
-fn decode_img(in_file: &str, out_file: &str) {
+fn convert_img(in_file: &str, out_file: &str) {
     //read the image buffer from the png file
     let img = image::open(in_file).unwrap();
-    let img = img.to_rgba8();
+    let img: ImageBuffer<image::Rgba<u8>, Vec<u8>> = img.to_rgba8();
+    let data = decode_img(img);
+    std::fs::write(out_file, data).unwrap();
+}
+fn decode_img(img: ImageBuffer<image::Rgba<u8>, Vec<u8>> ) -> Vec<u8> {
     //create a new vector of 4 u8s
     let mut data = Vec::new();
     //for each pixel in the image buffer get the rgba values and push them to the data vector
@@ -74,8 +78,7 @@ fn decode_img(in_file: &str, out_file: &str) {
     //remove the stop code and the extra bits
     let data = &data[..stop_index];
     //write the data back to the zip file
-    std::fs::write(out_file, data).unwrap();
-    println!("DONE WRITE");
+    data.to_vec()
 }
     
 fn main() {
@@ -85,7 +88,7 @@ fn main() {
         if args[1] == "-e" {
             convert_file(&args[2]);
         } else if args[1] == "-d" {
-            decode_img(&args[2], "output.zip");
+            convert_img(&args[2], "output.zip");
         }
         else {
             //show the user how to use the program
@@ -111,7 +114,7 @@ fn main() {
             let mut filename = String::new();
             std::io::stdin().read_line(&mut filename).unwrap();
             let filename = filename.trim();
-            decode_img(filename, "output.zip");
+            convert_img(filename, "output.zip");
             return;
         } else {
             println!("Invalid choice");
