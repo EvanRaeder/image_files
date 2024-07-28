@@ -155,7 +155,6 @@ fn main() {
             //dont name zip
             convert_img(&args[2]);
         }
-        }
         else {
             //show the user how to use the program
             println!("Usage: image_files.exe -e <filename> or image_files.exe -d <filename>");
