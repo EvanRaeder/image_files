@@ -82,13 +82,16 @@ fn encode_data(mut data: Vec<u8>) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
 }
 
 //\\Decode the image into the file//\\
-fn convert_img(input: &str, out_file: &str) {
+fn convert_img(input: &str) {
     //if the file is a png file
     if input.ends_with(".png") {
         let img = image::open(input).unwrap();
         let img: ImageBuffer<image::Rgba<u8>, Vec<u8>> = img.to_rgba8();
         let data = decode_img(img);
-        std::fs::write(out_file, data).unwrap();
+        let mut file_name = input.to_owned();
+        file_name = file_name.split(separator()).collect::<Vec<&str>>().last().unwrap().to_owned().to_owned();
+        file_name = file_name.split("{0}.").collect::<Vec<&str>>()[0].to_owned();
+        std::fs::write(file_name, data).unwrap();
         return;
     }
     //if the file is a directory
@@ -98,16 +101,19 @@ fn convert_img(input: &str, out_file: &str) {
         let entries = std::fs::read_dir(dir).unwrap();
         //sort entries by the number in {}.png in the filename
         let mut entries = entries.map(|entry| entry.unwrap()).collect::<Vec<std::fs::DirEntry>>();
-        entries.sort_by(|a, b| {
-            let a = a.file_name().to_str().unwrap().split('{').collect::<Vec<&str>>()[1].to_owned();
-            let b = b.file_name().to_str().unwrap().split('{').collect::<Vec<&str>>()[1].to_owned();
-            let a = a.split('}').collect::<Vec<&str>>()[0].to_owned();
-            let b = b.split('}').collect::<Vec<&str>>()[0].to_owned();
-            let a = a.parse::<usize>().unwrap();
-            let b = b.parse::<usize>().unwrap();
-            a.cmp(&b)
-        });
-        println!("Entries: {:?}", entries);
+        let file_name = entries[0].file_name().to_str().unwrap().split("{0}.").collect::<Vec<&str>>()[0].to_owned();
+        let file_name = file_name.split(separator()).collect::<Vec<&str>>().last().unwrap().to_owned();
+        if entries.len() > 1 { 
+            entries.sort_by(|a, b| {
+                let a = a.file_name().to_str().unwrap().split('{').collect::<Vec<&str>>()[1].to_owned();
+                let b = b.file_name().to_str().unwrap().split('{').collect::<Vec<&str>>()[1].to_owned();
+                let a = a.split('}').collect::<Vec<&str>>()[0].to_owned();
+                let b = b.split('}').collect::<Vec<&str>>()[0].to_owned();
+                let a = a.parse::<usize>().unwrap();
+                let b = b.parse::<usize>().unwrap();
+                a.cmp(&b)
+            });
+        }
         for entry in entries {
             let path = entry.path();
             let img = image::open(path).unwrap();
@@ -117,7 +123,8 @@ fn convert_img(input: &str, out_file: &str) {
             let data_chunk = &data_chunk[..data_chunk.len()-23];
             data.extend(data_chunk);
         }
-        std::fs::write(out_file, data).unwrap();
+        println!("Writing to: {:?}", file_name);
+        std::fs::write(file_name, data).unwrap();
     }
 }
 fn decode_img(img: ImageBuffer<image::Rgba<u8>, Vec<u8>> ) -> Vec<u8> {
@@ -146,7 +153,7 @@ fn main() {
             convert_file(&args[2]);
         } else if args[1] == "-d" {
             //dont name zip
-            convert_img(&args[2], "output.zip");
+            convert_img(&args[2]);
         } else if args[1] == "-c" {
             // compare the binary of two files and output the differences in a text file
             let file1 = std::fs::read(&args[2]).unwrap();
@@ -190,7 +197,7 @@ fn main() {
             let mut filename = String::new();
             std::io::stdin().read_line(&mut filename).unwrap();
             let filename = filename.trim();
-            convert_img(filename, "output.zip");
+            convert_img(filename);
             return;
         } else {
             println!("Invalid choice");
