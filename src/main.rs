@@ -1,4 +1,4 @@
-use std::f64;
+use std::{f64, fs::File, io::{BufReader, Read}};
 use image::ImageBuffer;
 
 #[cfg(unix)]
@@ -28,21 +28,33 @@ fn file_size(bytes: f64) -> (f64, f64) {
 
 //\\Encode the file into the image//\\
 fn convert_file(in_file: &str) {
-    //get the file path
+    // Get the file path
     let file = std::path::Path::new(in_file);
     let file_name = file.file_name().unwrap().to_str().unwrap().to_owned();
     let dir_name = file.file_name().unwrap().to_str().unwrap().to_owned().split('.').collect::<Vec<&str>>()[0].to_owned();
     std::fs::create_dir_all(&dir_name).unwrap();
-    let data = std::fs::read(file).unwrap();
-    //split data into 100 mb chunks
-    let data = data.chunks(99900000).map(|chunk| chunk.to_vec()).collect::<Vec<Vec<u8>>>();
-    for (i, chunk) in data.iter().enumerate() {
-        let file_name = file_name.clone();
+
+    // Open the file for reading
+    let mut file = BufReader::new(File::open(file).unwrap());
+    let mut buffer = vec![0; 99900000];
+    let mut i = 0;
+
+    loop {
+        // Read a chunk of the file
+        let bytes_read = file.read(&mut buffer).unwrap();
+        if bytes_read == 0 {
+            break;
+        }
+
+        // Process the chunk
+        let chunk = buffer[..bytes_read].to_vec();
+        let file_name = format!("{}{}{}", dir_name, separator(), file_name);
         let file_name = file_name + "{" + &i.to_string() + "}" + ".png";
-        let file_name = dir_name.clone() + separator() + &file_name;
         println!("Writing to: {}", file_name);
-        let img = encode_data(chunk.clone());
+        let img = encode_data(chunk);
         img.save(file_name).unwrap();
+
+        i += 1;
     }
 }
 fn encode_data(mut data: Vec<u8>) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
