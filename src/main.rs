@@ -154,24 +154,7 @@ fn main() {
         } else if args[1] == "-d" {
             //dont name zip
             convert_img(&args[2]);
-        } else if args[1] == "-c" {
-            // compare the binary of two files and output the differences in a text file
-            let file1 = std::fs::read(&args[2]).unwrap();
-            let file2 = std::fs::read(&args[3]).unwrap();
-            println!("File 1: {:?} File 2: {:?}", file1.len(), file2.len());
-            //find what is different between the two files and print the index of the difference
-            let mut diff = Vec::new();
-            for (i, (a, b)) in file1.iter().zip(file2.iter()).enumerate() {
-                if a != b {
-                    diff.push(i);
-                }
-            }
-            //print first difference
-            println!("First difference: {:?}", diff[0]);
-            //print the first 50 bits after the first difference
-            for i in diff[0]..diff[0]+50 {
-                println!("{:08b} , {:08b}", file1[i], file2[i]);
-            }
+        }
         }
         else {
             //show the user how to use the program
