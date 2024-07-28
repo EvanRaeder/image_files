@@ -38,7 +38,7 @@ fn convert_file(in_file: &str) {
     let data = data.chunks(99900000).map(|chunk| chunk.to_vec()).collect::<Vec<Vec<u8>>>();
     for (i, chunk) in data.iter().enumerate() {
         let file_name = file_name.clone();
-        let file_name = file_name + &i.to_string() + ".png";
+        let file_name = file_name + "{" + &i.to_string() + "}" + ".png";
         let file_name = dir_name.clone() + separator() + &file_name;
         println!("Writing to: {}", file_name);
         let img = encode_data(chunk.clone());
@@ -82,12 +82,41 @@ fn encode_data(mut data: Vec<u8>) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
 }
 
 //\\Decode the image into the file//\\
-fn convert_img(in_file: &str, out_file: &str) {
-    //read the image buffer from the png file
-    let img = image::open(in_file).unwrap();
-    let img: ImageBuffer<image::Rgba<u8>, Vec<u8>> = img.to_rgba8();
-    let data = decode_img(img);
-    std::fs::write(out_file, data).unwrap();
+fn convert_img(input: &str, out_file: &str) {
+    //if the file is a png file
+    if input.ends_with(".png") {
+        let img = image::open(input).unwrap();
+        let img: ImageBuffer<image::Rgba<u8>, Vec<u8>> = img.to_rgba8();
+        let data = decode_img(img);
+        std::fs::write(out_file, data).unwrap();
+        return;
+    }
+    //if the file is a directory
+    else {
+        let dir = std::path::Path::new(input);
+        let mut data = Vec::new();
+        let entries = std::fs::read_dir(dir).unwrap();
+        //sort entries by the number in {}.png in the filename
+        let mut entries = entries.map(|entry| entry.unwrap()).collect::<Vec<std::fs::DirEntry>>();
+        entries.sort_by(|a, b| {
+            let a = a.file_name().to_str().unwrap().split('{').collect::<Vec<&str>>()[1].to_owned();
+            let b = b.file_name().to_str().unwrap().split('{').collect::<Vec<&str>>()[1].to_owned();
+            let a = a.split('}').collect::<Vec<&str>>()[0].to_owned();
+            let b = b.split('}').collect::<Vec<&str>>()[0].to_owned();
+            let a = a.parse::<usize>().unwrap();
+            let b = b.parse::<usize>().unwrap();
+            a.cmp(&b)
+        });
+        println!("Entries: {:?}", entries);
+        for entry in entries {
+            let path = entry.path();
+            let img = image::open(path).unwrap();
+            let img: ImageBuffer<image::Rgba<u8>, Vec<u8>> = img.to_rgba8();
+            let data_chunk = decode_img(img);
+            data.extend(data_chunk);
+        }
+        std::fs::write(out_file, data).unwrap();
+    }
 }
 fn decode_img(img: ImageBuffer<image::Rgba<u8>, Vec<u8>> ) -> Vec<u8> {
     //create a new vector of 4 u8s
@@ -114,6 +143,7 @@ fn main() {
         if args[1] == "-e" {
             convert_file(&args[2]);
         } else if args[1] == "-d" {
+            //dont name zip
             convert_img(&args[2], "output.zip");
         }
         else {
