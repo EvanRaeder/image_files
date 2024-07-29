@@ -1,23 +1,15 @@
-use std::{f64, fs::{File, OpenOptions}, io::{BufReader, BufWriter, Read, Write}};
+use std::{f64, fmt::format, fs::{File, OpenOptions}, io::{BufReader, BufWriter, Read, Write}};
 use image::ImageBuffer;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 #[cfg(unix)]
 fn separator() -> &'static str {
     "/"
 }
-#[cfg(unix)]
-fn zip_extension() -> &'static str {
-    ".tar.gz"
-}
 #[cfg(windows)]
 fn separator() -> &'static str {
     "\\"
 }
-#[cfg(windows)]
-fn zip_extension() -> &'static str {
-    ".zip"
-}
-
 //\\Get the correct image size for the file//\\
 fn file_size(bytes: f64) -> (f64, f64) {
     let size = bytes/4.0;
@@ -25,43 +17,44 @@ fn file_size(bytes: f64) -> (f64, f64) {
     let width = f64::ceil(f64::sqrt(size));
     (length, width)
 }
-
 //\\Encode the file into the image//\\
 fn convert_file(in_file: &str) {
+    let chunk_size = 99900000;
     // Get the file path
+    let size = std::fs::metadata(in_file).unwrap().len();
     let file = std::path::Path::new(in_file);
     let file_name = file.file_name().unwrap().to_str().unwrap().to_owned();
     let dir_name = file.file_name().unwrap().to_str().unwrap().to_owned().split('.').collect::<Vec<&str>>()[0].to_owned();
     std::fs::create_dir_all(&dir_name).unwrap();
-
     // Open the file for reading
     let mut file = BufReader::new(File::open(file).unwrap());
-    let mut buffer = vec![0; 99900000];
+    let mut buffer = vec![0; chunk_size];
     let mut i = 0;
-
+    let m = MultiProgress::new();
+    let pb = m.add(ProgressBar::new(size/chunk_size as u64));
     loop {
         // Read a chunk of the file
         let bytes_read = file.read(&mut buffer).unwrap();
         if bytes_read == 0 {
             break;
         }
-
+        pb.set_message(format!("Encoding {}", file_name));
         // Process the chunk
         let chunk = buffer[..bytes_read].to_vec();
         let file_name = format!("{}{}{}", dir_name, separator(), file_name);
         let file_name = file_name + "{" + &i.to_string() + "}" + ".png";
-        println!("Writing to: {}", file_name);
-        let img = encode_data(chunk);
-        img.save(file_name).unwrap();
-
+        let img = encode_data(chunk,m.clone());
+        img.save(&file_name).unwrap();
+        pb.set_message(format!("Saved {}", file_name));
+        pb.inc(1);
         i += 1;
     }
+    pb.finish_with_message(format!("Saved to: {}", dir_name));
 }
-fn encode_data(mut data: Vec<u8>) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
+fn encode_data(mut data: Vec<u8>,m:MultiProgress) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     //get the length of the data in bits
     let length_bit = data.len() as f64;
     let (length, width) = file_size(length_bit as f64);
-    println!("Length: {}, Width: {}", length, width);
     //add a binary stop code to the data
     data.push(0b11111111);
     //get data into vecs of 4 bytes
@@ -72,12 +65,12 @@ fn encode_data(mut data: Vec<u8>) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
         }
         byte
     }).collect::<Vec<[u8; 4]>>();
-    println!("Data length: {}", data.len()); 
-    assert!(data.len() <= (length * width) as usize);// DO NOT REMOVE UNDER ANY CIRCUMSTANCES
+    assert!(data.len() <= (length * width) as usize);// IMPORTANT SANITY CHECK
     let length = f64::sqrt(data.len() as f64);
     let width = f64::ceil(data.len() as f64 / length);
     let img = image::DynamicImage::new_rgb8(length as u32, width as u32);
     //create a new image buffer
+    let pb2 = m.add(ProgressBar::new(data.len() as u64));
     let mut img: ImageBuffer<image::Rgba<u8>, Vec<u8>> = img.to_rgba8();
     //for each pixel in the image buffer set values of rgba to the four u8s
     for (x, y, pixel) in img.enumerate_pixels_mut() {
@@ -87,9 +80,10 @@ fn encode_data(mut data: Vec<u8>) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
             pixel[1] = data[index][1];
             pixel[2] = data[index][2];
             pixel[3] = data[index][3];
+            pb2.inc(1);
         }
     }
-    println!("DONE WRITE");
+    pb2.finish_and_clear();
     img
 }
 
@@ -97,9 +91,10 @@ fn encode_data(mut data: Vec<u8>) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
 fn convert_img(input: &str) {
     //if the file is a png file
     if input.ends_with(".png") {
+        let m = MultiProgress::new();
         let img = image::open(input).unwrap();
         let img: ImageBuffer<image::Rgba<u8>, Vec<u8>> = img.to_rgba8();
-        let data = decode_img(img);
+        let data = decode_img(img, m);
         let mut file_name = input.to_owned();
         file_name = file_name.split(separator()).collect::<Vec<&str>>().last().unwrap().to_owned().to_owned();
         file_name = file_name.split("{0}.").collect::<Vec<&str>>()[0].to_owned();
@@ -109,12 +104,9 @@ fn convert_img(input: &str) {
     //if the file is a directory
     else {
         let dir = std::path::Path::new(input);
-        let mut data: Vec<u8> = Vec::new();
         let entries = std::fs::read_dir(dir).unwrap();
         //sort entries by the number in {}.png in the filename
         let mut entries = entries.map(|entry| entry.unwrap()).collect::<Vec<std::fs::DirEntry>>();
-        let file_name = entries[0].file_name().to_str().unwrap().split("{0}.").collect::<Vec<&str>>()[0].to_owned();
-        let file_name = file_name.split(separator()).collect::<Vec<&str>>().last().unwrap().to_owned();
         if entries.len() > 1 { 
             entries.sort_by(|a, b| {
                 let a = a.file_name().to_str().unwrap().split('{').collect::<Vec<&str>>()[1].to_owned();
@@ -126,29 +118,40 @@ fn convert_img(input: &str) {
                 a.cmp(&b)
             });
         }
+        let m = MultiProgress::new();
+        let pb = m.add(ProgressBar::new(entries.len() as u64));
+        let file_name = entries[0].file_name().to_str().unwrap().split("{0}.").collect::<Vec<&str>>()[0].to_owned();
+        let file_name = file_name.split(separator()).collect::<Vec<&str>>().last().unwrap().to_owned();
         let out_file = OpenOptions::new().write(true).create(true).open(file_name).unwrap();
         let mut writer = BufWriter::new(out_file);
         for entry in entries {
+            pb.set_message(format!("Decoding {}", entry.file_name().to_str().unwrap()));
             let path = entry.path();
             let img = image::open(path).unwrap();
             let img: ImageBuffer<image::Rgba<u8>, Vec<u8>> = img.to_rgba8();
-            let data_chunk = decode_img(img);
+            let data_chunk = decode_img(img,m.clone());
             //remove last 23 bytes from the data
             let data_chunk = &data_chunk[..data_chunk.len()-23];
             //data.extend(data_chunk);]
             writer.write_all(data_chunk).unwrap();
+            pb.set_message(format!("Decoded {}", entry.file_name().to_str().unwrap()));
+            pb.inc(1);
         }
         println!("Writing to: {:?}", file_name);
         //std::fs::write(file_name, data).unwrap();
         writer.flush().unwrap();
+        pb.finish_with_message(format!("Decoded to: {:?}", file_name));
     }
 }
-fn decode_img(img: ImageBuffer<image::Rgba<u8>, Vec<u8>> ) -> Vec<u8> {
+fn decode_img(img: ImageBuffer<image::Rgba<u8>, Vec<u8>>,m: MultiProgress ) -> Vec<u8> {
     //create a new vector of 4 u8s
     let mut data = Vec::new();
+    let img_size = img.width() * img.height();
+    let pb2 = m.add(ProgressBar::new(img_size as u64));
     //for each pixel in the image buffer get the rgba values and push them to the data vector
     for (_x, _y, pixel) in img.enumerate_pixels() {
         data.push([pixel[0], pixel[1], pixel[2], pixel[3]]);
+        pb2.inc(1);
     }
     //convert data into a vector of u8s
     let data = data.iter().flat_map(|pixel| pixel.iter().cloned()).collect::<Vec<u8>>();
@@ -156,6 +159,8 @@ fn decode_img(img: ImageBuffer<image::Rgba<u8>, Vec<u8>> ) -> Vec<u8> {
     let stop_index = data.iter().rposition(|&x| x == 0b11111111).unwrap(); //could be a one liner
     //remove the stop code and the extra bits
     let data = &data[..stop_index];
+    pb2.set_message("Decoded");
+    pb2.finish_and_clear();
     //write the data back to the zip file
     data.to_vec()
 }
@@ -189,6 +194,12 @@ fn main() {
             std::io::stdin().read_line(&mut filename).unwrap();
             let filename = filename.trim();
             convert_file(filename);
+            println!("Enter a working directory leave blank for current directory");
+            let mut dir = String::new();
+            std::io::stdin().read_line(&mut dir).unwrap();  
+            if dir.trim() != "" {
+                std::env::set_current_dir(dir.trim()).unwrap();
+            }
             return;
         } else if choice == "d" {
             println!("Enter the path to filename to decode");
