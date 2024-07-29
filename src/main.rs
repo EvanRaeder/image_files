@@ -171,9 +171,14 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 2 {
         if args[1] == "-e" {
+            if args[3] != "" {
+                std::env::set_current_dir(args[3].trim()).unwrap();
+            }
             convert_file(&args[2]);
         } else if args[1] == "-d" {
-            //dont name zip
+            if args[3] != "" {
+                std::env::set_current_dir(args[3].trim()).unwrap();
+            }
             convert_img(&args[2]);
         }
         else {
@@ -193,19 +198,25 @@ fn main() {
             let mut filename = String::new();
             std::io::stdin().read_line(&mut filename).unwrap();
             let filename = filename.trim();
-            convert_file(filename);
             println!("Enter a working directory leave blank for current directory");
             let mut dir = String::new();
             std::io::stdin().read_line(&mut dir).unwrap();  
             if dir.trim() != "" {
                 std::env::set_current_dir(dir.trim()).unwrap();
             }
+            convert_file(filename);
             return;
         } else if choice == "d" {
             println!("Enter the path to filename to decode");
             let mut filename = String::new();
             std::io::stdin().read_line(&mut filename).unwrap();
             let filename = filename.trim();
+            println!("Enter a working directory leave blank for current directory");
+            let mut dir = String::new();
+            std::io::stdin().read_line(&mut dir).unwrap();  
+            if dir.trim() != "" {
+                std::env::set_current_dir(dir.trim()).unwrap();
+            }
             convert_img(filename);
             return;
         } else {
