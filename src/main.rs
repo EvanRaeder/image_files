@@ -1,4 +1,4 @@
-use std::{f64, fs::File, io::{BufReader, Read}};
+use std::{f64, fs::{File, OpenOptions}, io::{BufReader, BufWriter, Read, Write}};
 use image::ImageBuffer;
 
 #[cfg(unix)]
@@ -109,7 +109,7 @@ fn convert_img(input: &str) {
     //if the file is a directory
     else {
         let dir = std::path::Path::new(input);
-        let mut data = Vec::new();
+        let mut data: Vec<u8> = Vec::new();
         let entries = std::fs::read_dir(dir).unwrap();
         //sort entries by the number in {}.png in the filename
         let mut entries = entries.map(|entry| entry.unwrap()).collect::<Vec<std::fs::DirEntry>>();
@@ -126,6 +126,8 @@ fn convert_img(input: &str) {
                 a.cmp(&b)
             });
         }
+        let out_file = OpenOptions::new().write(true).create(true).open(file_name).unwrap();
+        let mut writer = BufWriter::new(out_file);
         for entry in entries {
             let path = entry.path();
             let img = image::open(path).unwrap();
@@ -133,10 +135,12 @@ fn convert_img(input: &str) {
             let data_chunk = decode_img(img);
             //remove last 23 bytes from the data
             let data_chunk = &data_chunk[..data_chunk.len()-23];
-            data.extend(data_chunk);
+            //data.extend(data_chunk);]
+            writer.write_all(data_chunk).unwrap();
         }
         println!("Writing to: {:?}", file_name);
-        std::fs::write(file_name, data).unwrap();
+        //std::fs::write(file_name, data).unwrap();
+        writer.flush().unwrap();
     }
 }
 fn decode_img(img: ImageBuffer<image::Rgba<u8>, Vec<u8>> ) -> Vec<u8> {
