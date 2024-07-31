@@ -1,8 +1,8 @@
-# Image File Encoder/Decoder
+# File Encode and Decode to .PNG
 
 ## Description
 
-This project is aimed at managing and organizing image files. It provides a user-friendly interface to browse, search, and categorize images efficiently. Additionally, it includes functionality for encoding and decoding image files using buffer writing to optimize memory usage.
+This project is aimed at converting files to images so they can be uploaded to hosting platforms. It includes functionality for encoding and decoding image files using buffer writing to optimize memory usage. Larger files are split into multiple images to allow them to be uploaded to most platforms.
 
 ## Features
 
