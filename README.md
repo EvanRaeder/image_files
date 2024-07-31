@@ -18,17 +18,29 @@ Binary releases for windows-latest can be found [here](https://github.com/EvanRa
 ## Installation
 
 1. Clone the repository: `git clone https://github.com/EvanRaeder/image_files`
-2. Navigate to the project directory: `cd repo`
+2. Navigate to the project directory: `cd .\image_files\`
 3. Install dependencies: `cargo build --release`
 
 ## Usage
+
+### Drag And Drop
+
+Simply drag and drop the file you want to encode or the directory you want to decode.
+
+### Drag And Drop
+
+Simply drag and drop the file you want to encode or the directory you want to decode.
+
+![Drag and Drop GIF](https://github.com/EvanRaeder/image_files/assets/dandd.gif)
+
+
 
 ### Command-Line Interface
 
 To use the command-line interface, run the executable with the appropriate flags:
 
 ```sh
-image_files.exe -e <filename> <output&optional>  # Encode the specified file
+image_files.exe -e <filename> <output&optional> # Encode the specified file
 image_files.exe -d <filename> <output&optional> # Decode the specified file
 ```
 
@@ -37,3 +49,5 @@ image_files.exe -d <filename> <output&optional> # Decode the specified file
 1. Double-click run image_files.exe
 2. Follow the prompts to either (e)ncode or (d)ecode a file and drag and drop or copy in the files location.
 3. Specify a new working directory for the app if the files should be saved elsewhere.
+
+![Encode UI GIF](https://github.com/EvanRaeder/image_files/assets/encode.gif)

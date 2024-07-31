@@ -1,4 +1,4 @@
-use std::{f64, fmt::format, fs::{File, OpenOptions}, io::{BufReader, BufWriter, Read, Write}};
+use std::{f64, fs::{File, OpenOptions}, io::{BufReader, BufWriter, Read, Write}};
 use image::ImageBuffer;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
@@ -10,6 +10,19 @@ fn separator() -> &'static str {
 fn separator() -> &'static str {
     "\\"
 }
+
+fn get_progress_style() -> ProgressStyle {
+    let style_result = ProgressStyle::default_bar()
+        .template("{msg} [{bar:40.cyan/blue}] {pos}/{len} ({eta})");
+    match style_result {
+        Ok(style) => style,
+        Err(err) => {
+            eprintln!("Error creating progress style: {}", err);
+            ProgressStyle::default_bar()
+        }
+    }
+}
+
 //\\Get the correct image size for the file//\\
 fn file_size(bytes: f64) -> (f64, f64) {
     let size = bytes/4.0;
@@ -24,14 +37,17 @@ fn convert_file(in_file: &str) {
     let size = std::fs::metadata(in_file).unwrap().len();
     let file = std::path::Path::new(in_file);
     let file_name = file.file_name().unwrap().to_str().unwrap().to_owned();
-    let dir_name = file.file_name().unwrap().to_str().unwrap().to_owned().split('.').collect::<Vec<&str>>()[0].to_owned();
+    let dir_name = file.file_name().unwrap().to_str().unwrap().to_owned().replace(".", "_");
+
     std::fs::create_dir_all(&dir_name).unwrap();
     // Open the file for reading
     let mut file = BufReader::new(File::open(file).unwrap());
     let mut buffer = vec![0; chunk_size];
     let mut i = 0;
+    let style = get_progress_style();
     let m = MultiProgress::new();
     let pb = m.add(ProgressBar::new(size/chunk_size as u64));
+    pb.set_style(style);
     loop {
         // Read a chunk of the file
         let bytes_read = file.read(&mut buffer).unwrap();
@@ -70,7 +86,9 @@ fn encode_data(mut data: Vec<u8>,m:MultiProgress) -> ImageBuffer<image::Rgba<u8>
     let width = f64::ceil(data.len() as f64 / length);
     let img = image::DynamicImage::new_rgb8(length as u32, width as u32);
     //create a new image buffer
+    let style = get_progress_style();
     let pb2 = m.add(ProgressBar::new(data.len() as u64));
+    pb2.set_style(style);
     let mut img: ImageBuffer<image::Rgba<u8>, Vec<u8>> = img.to_rgba8();
     //for each pixel in the image buffer set values of rgba to the four u8s
     for (x, y, pixel) in img.enumerate_pixels_mut() {
@@ -86,7 +104,6 @@ fn encode_data(mut data: Vec<u8>,m:MultiProgress) -> ImageBuffer<image::Rgba<u8>
     pb2.finish_and_clear();
     img
 }
-
 //\\Decode the image into the file//\\
 fn convert_img(input: &str) {
     //if the file is a png file
@@ -119,7 +136,9 @@ fn convert_img(input: &str) {
             });
         }
         let m = MultiProgress::new();
+        let style = get_progress_style();
         let pb = m.add(ProgressBar::new(entries.len() as u64));
+        pb.set_style(style);
         let file_name = entries[0].file_name().to_str().unwrap().split("{0}.").collect::<Vec<&str>>()[0].to_owned();
         let file_name = file_name.split(separator()).collect::<Vec<&str>>().last().unwrap().to_owned();
         let out_file = OpenOptions::new().write(true).create(true).open(file_name).unwrap();
@@ -147,7 +166,9 @@ fn decode_img(img: ImageBuffer<image::Rgba<u8>, Vec<u8>>,m: MultiProgress ) -> V
     //create a new vector of 4 u8s
     let mut data = Vec::new();
     let img_size = img.width() * img.height();
+    let style = get_progress_style();
     let pb2 = m.add(ProgressBar::new(img_size as u64));
+    pb2.set_style(style);
     //for each pixel in the image buffer get the rgba values and push them to the data vector
     for (_x, _y, pixel) in img.enumerate_pixels() {
         data.push([pixel[0], pixel[1], pixel[2], pixel[3]]);
@@ -169,7 +190,7 @@ fn main() {
     //check if unix or windows
     //if there are args provided if -e encode else if -d decode the given filename
     let args: Vec<String> = std::env::args().collect();
-    if args.len() > 2 {
+    if args.len() >= 2 {
         if args[1] == "-e" {
             if args[3] != "" {
                 std::env::set_current_dir(args[3].trim()).unwrap();
@@ -180,10 +201,23 @@ fn main() {
                 std::env::set_current_dir(args[3].trim()).unwrap();
             }
             convert_img(&args[2]);
-        }
-        else {
-            //show the user how to use the program
-            println!("Usage: image_files.exe -e <filename> or image_files.exe -d <filename>");
+        } else {
+            //check if arg[1] is an existing directory
+            let dir = std::path::Path::new(&args[1]);
+            if dir.is_dir() {
+                if args.len() == 3 {
+                    std::env::set_current_dir(args[2].trim()).unwrap();
+                }
+                convert_img(&args[1]);
+            }else if dir.is_file() {
+                if args.len() == 3 {
+                    std::env::set_current_dir(args[2].trim()).unwrap();
+                }
+                convert_file(&args[1]);
+            }else {
+                println!("Invalid directory or file");
+                println!("Usage: image_files.exe -e <filename> or image_files.exe -d <filename> or specify a working directory by using image_files.exe -d/e <filename> <directory>");
+            }
         }
     }
     else {
