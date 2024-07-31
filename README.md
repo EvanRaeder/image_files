@@ -31,7 +31,7 @@ Simply drag and drop the file you want to encode or the directory you want to de
 
 Simply drag and drop the file you want to encode or the directory you want to decode.
 
-![Drag and Drop GIF](https://github.com/EvanRaeder/image_files/assets/dandd.gif)
+![Drag and Drop GIF](https://raw.githubusercontent.com/EvanRaeder/image_files/main/assets/dandd.gif)
 
 
 
@@ -50,4 +50,4 @@ image_files.exe -d <filename> <output&optional> # Decode the specified file
 2. Follow the prompts to either (e)ncode or (d)ecode a file and drag and drop or copy in the files location.
 3. Specify a new working directory for the app if the files should be saved elsewhere.
 
-![Encode UI GIF](https://github.com/EvanRaeder/image_files/assets/encode.gif)
+![Encode UI GIF](https://raw.githubusercontent.com/EvanRaeder/image_files/main/assets/encode.gif)
