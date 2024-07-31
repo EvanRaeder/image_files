@@ -11,6 +11,9 @@ fn separator() -> &'static str {
     "\\"
 }
 
+static STOP_CODE: u8 = 0b11111111;
+static CHUNK_SIZE: usize = 99900000;
+
 fn get_progress_style() -> ProgressStyle {
     let style_result = ProgressStyle::default_bar()
         .template("{msg} [{bar:40.cyan/blue}] {pos}/{len} ({eta})");
@@ -23,30 +26,22 @@ fn get_progress_style() -> ProgressStyle {
     }
 }
 
-//\\Get the correct image size for the file//\\
-fn file_size(bytes: f64) -> (f64, f64) {
-    let size = bytes/4.0;
-    let length = f64::ceil(f64::sqrt(size));
-    let width = f64::ceil(f64::sqrt(size));
-    (length, width)
-}
 //\\Encode the file into the image//\\
 fn convert_file(in_file: &str) {
-    let chunk_size = 99900000;
     // Get the file path
     let size = std::fs::metadata(in_file).unwrap().len();
     let file = std::path::Path::new(in_file);
     let file_name = file.file_name().unwrap().to_str().unwrap().to_owned();
     let dir_name = file.file_name().unwrap().to_str().unwrap().to_owned().replace(".", "_");
-
     std::fs::create_dir_all(&dir_name).unwrap();
     // Open the file for reading
     let mut file = BufReader::new(File::open(file).unwrap());
-    let mut buffer = vec![0; chunk_size];
+    let mut buffer = vec![0; CHUNK_SIZE];
     let mut i = 0;
+    // Create a progress bar
     let style = get_progress_style();
     let m = MultiProgress::new();
-    let pb = m.add(ProgressBar::new(size/chunk_size as u64));
+    let pb = m.add(ProgressBar::new(size/CHUNK_SIZE as u64));
     pb.set_style(style);
     loop {
         // Read a chunk of the file
@@ -57,10 +52,12 @@ fn convert_file(in_file: &str) {
         pb.set_message(format!("Encoding {}", file_name));
         // Process the chunk
         let chunk = buffer[..bytes_read].to_vec();
+        // Save the image
         let file_name = format!("{}{}{}", dir_name, separator(), file_name);
         let file_name = file_name + "{" + &i.to_string() + "}" + ".png";
         let img = encode_data(chunk,m.clone());
         img.save(&file_name).unwrap();
+        // Update the progress bar
         pb.set_message(format!("Saved {}", file_name));
         pb.inc(1);
         i += 1;
@@ -68,11 +65,8 @@ fn convert_file(in_file: &str) {
     pb.finish_with_message(format!("Saved to: {}", dir_name));
 }
 fn encode_data(mut data: Vec<u8>,m:MultiProgress) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
-    //get the length of the data in bits
-    let length_bit = data.len() as f64;
-    let (length, width) = file_size(length_bit as f64);
     //add a binary stop code to the data
-    data.push(0b11111111);
+    data.push(STOP_CODE);
     //get data into vecs of 4 bytes
     let data = data.chunks(4).map(|chunk| {
         let mut byte = [0; 4];
@@ -81,9 +75,9 @@ fn encode_data(mut data: Vec<u8>,m:MultiProgress) -> ImageBuffer<image::Rgba<u8>
         }
         byte
     }).collect::<Vec<[u8; 4]>>();
-    assert!(data.len() <= (length * width) as usize);// IMPORTANT SANITY CHECK
     let length = f64::sqrt(data.len() as f64);
     let width = f64::ceil(data.len() as f64 / length);
+    assert!(data.len() <= (length * width) as usize);// IMPORTANT SANITY CHECK
     let img = image::DynamicImage::new_rgb8(length as u32, width as u32);
     //create a new image buffer
     let style = get_progress_style();
@@ -162,33 +156,34 @@ fn convert_img(input: &str) {
         pb.finish_with_message(format!("Decoded to: {:?}", file_name));
     }
 }
+//\\Decode the data//\\
 fn decode_img(img: ImageBuffer<image::Rgba<u8>, Vec<u8>>,m: MultiProgress ) -> Vec<u8> {
-    //create a new vector of 4 u8s
+    // Create a new vector of 4 u8s
     let mut data = Vec::new();
     let img_size = img.width() * img.height();
     let style = get_progress_style();
     let pb2 = m.add(ProgressBar::new(img_size as u64));
     pb2.set_style(style);
-    //for each pixel in the image buffer get the rgba values and push them to the data vector
+    // For each pixel in the image buffer get the rgba values and push them to the data vector
     for (_x, _y, pixel) in img.enumerate_pixels() {
         data.push([pixel[0], pixel[1], pixel[2], pixel[3]]);
         pb2.inc(1);
     }
-    //convert data into a vector of u8s
+    // Convert data into a vector of u8s
     let data = data.iter().flat_map(|pixel| pixel.iter().cloned()).collect::<Vec<u8>>();
-    //find the index of the last stop code at the end of the data
-    let stop_index = data.iter().rposition(|&x| x == 0b11111111).unwrap(); //could be a one liner
-    //remove the stop code and the extra bits
+    // Find the index of the last stop code at the end of the data
+    let stop_index = data.iter().rposition(|&x| x == STOP_CODE).unwrap(); //could be a one liner
+    // Remove the stop code and the extra bits
     let data = &data[..stop_index];
     pb2.set_message("Decoded");
     pb2.finish_and_clear();
-    //write the data back to the zip file
+    // Write the data back to the zip file
     data.to_vec()
 }
     
 fn main() {
-    //check if unix or windows
-    //if there are args provided if -e encode else if -d decode the given filename
+    // Check if unix or windows
+    // If there are args provided if -e encode else if -d decode the given filename
     let args: Vec<String> = std::env::args().collect();
     if args.len() >= 2 {
         if args[1] == "-e" {
@@ -201,8 +196,8 @@ fn main() {
                 std::env::set_current_dir(args[3].trim()).unwrap();
             }
             convert_img(&args[2]);
-        } else {
-            //check if arg[1] is an existing directory
+        } else { // Enter Drag and Drop mode
+            // Check if arg[1] is an existing directory
             let dir = std::path::Path::new(&args[1]);
             if dir.is_dir() {
                 if args.len() == 3 {
@@ -221,7 +216,7 @@ fn main() {
         }
     }
     else {
-        //start with UI
+        // Start with UI
         println!("Welcome to the image file encoder/decoder");
         println!("Choose (e)ncode or (d)ecode");
         let mut choice = String::new();
