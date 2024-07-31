@@ -231,27 +231,29 @@ fn main() {
             println!("Enter path to the filename to encode");
             let mut filename = String::new();
             std::io::stdin().read_line(&mut filename).unwrap();
-            let filename = filename.trim();
+            let filename = filename.trim().replace('"', "").replace("'", "");
             println!("Enter a working directory leave blank for current directory");
             let mut dir = String::new();
-            std::io::stdin().read_line(&mut dir).unwrap();  
-            if dir.trim() != "" {
-                std::env::set_current_dir(dir.trim()).unwrap();
+            std::io::stdin().read_line(&mut dir).unwrap();
+            let dir = dir.trim().replace('"', "").replace("'", "");
+            if dir != "" {
+                std::env::set_current_dir(dir).unwrap();
             }
-            convert_file(filename);
+            convert_file(&filename);
             return;
         } else if choice == "d" {
             println!("Enter the path to filename to decode");
             let mut filename = String::new();
             std::io::stdin().read_line(&mut filename).unwrap();
-            let filename = filename.trim();
+            let filename = filename.trim().replace('"', "").replace("'", "");
             println!("Enter a working directory leave blank for current directory");
             let mut dir = String::new();
             std::io::stdin().read_line(&mut dir).unwrap();  
-            if dir.trim() != "" {
-                std::env::set_current_dir(dir.trim()).unwrap();
+            let dir = dir.trim().replace('"', "").replace("'", "");
+            if dir != "" {
+                std::env::set_current_dir(dir).unwrap();
             }
-            convert_img(filename);
+            convert_img(&filename);
             return;
         } else {
             println!("Invalid choice");
