@@ -27,13 +27,7 @@ Binary releases for windows-latest can be found [here](https://github.com/EvanRa
 
 Simply drag and drop the file you want to encode or the directory you want to decode.
 
-### Drag And Drop
-
-Simply drag and drop the file you want to encode or the directory you want to decode.
-
 ![Drag and Drop GIF](https://raw.githubusercontent.com/EvanRaeder/image_files/main/assets/dandd.gif)
-
-
 
 ### Command-Line Interface
 
