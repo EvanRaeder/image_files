@@ -18,7 +18,7 @@ Binary releases for windows-latest can be found [here](https://github.com/EvanRa
 ## Installation
 
 1. Clone the repository: `git clone https://github.com/EvanRaeder/image_files`
-2. Navigate to the project directory: `cd .\image_files\`
+2. Navigate to the project directory: `cd image_files`
 3. Install dependencies: `cargo build --release`
 
 ## Usage
