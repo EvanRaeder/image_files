@@ -1,58 +1,81 @@
-name: Rust
-
+name: Rust CI
 permissions:
   contents: write
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-env:
-  CARGO_TERM_COLOR: always
+on: push
 
 jobs:
-  build-win:
-    runs-on: windows-latest
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-      - name: Install latest rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-          override: true
-      - name: Set up cargo cache
-        uses: actions/cache@v3
-        continue-on-error: false
-        with:
-          path: |
+    - uses: actions/checkout@v2
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+
+    - name: Cache cargo
+      uses: actions/cache@v2
+      with:
+        path: |
             ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            target/            
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
-      - name: Build release
-        run: cargo build --release
+            target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ runner.os }}-cargo-
 
-      - name: Test encode
-        run: ./target/release/image_files -e assets/test.zip
+    - name: Build release
+      run: cargo build --release
 
-      - name: Extract version from commit message
-        id: get_version
-        run: echo "::set-output name=version::$(git log -1 --pretty=%B | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+    - name: Test encode
+      run: |
+        if [ $RUNNER_OS == 'Windows' ]; then
+          ./target/release/image_files.exe -e assets/test.zip
+        else
+          ./target/release/image_files -e assets/test.zip
+        fi
 
-      - name: Release
-        if: steps.get_version.outputs.version != ''
-        uses: softprops/action-gh-release@v1
-        with:
-          files: target/release/image_files.exe
-          tag_name: ${{ steps.get_version.outputs.version }}
-          name: Release ${{ steps.get_version.outputs.version }}
-          body: "Release version ${{ steps.get_version.outputs.version }}"
-          prerelease: true
+    - name: Upload release assets
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ runner.os }}-binary
+        path: |
+          ./target/release/image_files
+          ./target/release/image_files.exe
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download release assets
+      uses: actions/download-artifact@v2
+      with:
+        name: ubuntu-latest-binary
+        path: ./ubuntu
+    - name: Download release assets
+      uses: actions/download-artifact@v2
+      with:
+        name: windows-latest-binary
+        path: ./windows
+    - name: Extract version from commit message
+      id: get_version
+      run: echo "::set-output name=version::$(git log -1 --pretty=%B | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+    - name: Create Release
+      if: steps.get_version.outputs.version != ''
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./ubuntu/image_files
+          ./windows/image_files.exe
+        tag_name: ${{ steps.get_version.outputs.version }}
+        name: Release ${{ steps.get_version.outputs.version }}
+        body: "Release version ${{ steps.get_version.outputs.version }}"
+        prerelease: true
