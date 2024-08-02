@@ -55,3 +55,4 @@ jobs:
           tag_name: ${{ steps.get_version.outputs.version }}
           name: Release ${{ steps.get_version.outputs.version }}
           body: "Release version ${{ steps.get_version.outputs.version }}"
+          prerelease: true
