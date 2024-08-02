@@ -37,7 +37,7 @@ jobs:
 
     - name: Test encode
       run: |
-        if [ $RUNNER_OS == 'Windows' ]; then
+        if ($RUNNER_OS == 'Windows')
           ./target/release/image_files.exe -e assets/test.zip
         else
           ./target/release/image_files -e assets/test.zip
