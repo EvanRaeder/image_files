@@ -19,7 +19,6 @@ jobs:
         toolchain: stable
         profile: minimal
         override: true
-
     - name: Cache cargo
       uses: actions/cache@v2
       with:
@@ -31,18 +30,8 @@ jobs:
             target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-cargo-
-
     - name: Build release
       run: cargo build --release
-
-    - name: Test encode
-      run: |
-        if ($RUNNER_OS == 'Windows')
-          ./target/release/image_files.exe -e assets/test.zip
-        else
-          ./target/release/image_files -e assets/test.zip
-        fi
-
     - name: Upload release assets
       uses: actions/upload-artifact@v2
       with:
@@ -50,7 +39,6 @@ jobs:
         path: |
           ./target/release/image_files
           ./target/release/image_files.exe
-
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -65,6 +53,10 @@ jobs:
       with:
         name: windows-latest-binary
         path: ./windows
+    - name: Test encode ubuntu
+      run: ./ubuntu/image_files -e assets/test.zip
+    - name: Test encode windows
+      run: ./windows/image_files.exe -e assets/test.zip
     - name: Extract version from commit message
       id: get_version
       run: echo "::set-output name=version::$(git log -1 --pretty=%B | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
