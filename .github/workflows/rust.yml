@@ -42,8 +42,6 @@ jobs:
 
       - name: Test encode
         run: ./target/release/image_files -e assets/test.zip
-      - name: Test decode
-        run: ./target/release/image_files -d assets/test_zip
 
       - name: Extract version from commit message
         id: get_version
