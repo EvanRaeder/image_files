@@ -29,13 +29,15 @@ Simply drag and drop the file you want to encode or the directory you want to de
 
 ![Drag and Drop GIF](https://raw.githubusercontent.com/EvanRaeder/image_files/main/assets/dandd.gif)
 
-### Command-Line Interface
+### Arg Interface
 
-To use the command-line interface, run the executable with the appropriate flags:
+To use the Arg interface, run the executable with the appropriate flags:
 
+#### Examples:
 ```sh
-image_files.exe -e <filename> <output&optional> # Encode the specified file
-image_files.exe -d <filename> <output&optional> # Decode the specified file
+image_files.exe -e <filename> # Encode the specified file
+image_files.exe -d <filename> # Decode the specified file
+image_files.exe -e <filename> -dir <output-dir> # Encode and change working directory
 ```
 
 ### Application Interface
