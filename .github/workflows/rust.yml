@@ -49,7 +49,7 @@ jobs:
         run: |
           version=$(git log -1 --pretty=%B | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
           if ($version -eq $null)
-            version=""
+           { version="" }
           fi
           echo "::set-output name=version::$version"
         continue-on-error: true
