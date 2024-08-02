@@ -39,10 +39,10 @@ jobs:
         run: cargo build --release
 
       - name: Test encode
-        run: ./target/release/image_files -e .github/assets/test.zip
+        run: ./target/release/image_files -e assets/test.zip
 
       - name: Test decode
-        run: ./target/release/image_files -d .github/assets/test_zip
+        run: ./target/release/image_files -d assets/test_zip
 
       - name: Extract version from commit message
         id: get_version
@@ -85,10 +85,10 @@ jobs:
         run: cargo build --release
 
       - name: Test encode
-        run: ./target/release/image_files -e .github/assets/test.zip
+        run: ./target/release/image_files -e assets/test.zip
 
       - name: Test decode
-        run: ./target/release/image_files -d .github/assets/test_zip
+        run: ./target/release/image_files -d assets/test_zip
 
       - name: Extract version from commit message
         id: get_version
