@@ -1,4 +1,5 @@
 use indicatif::ProgressStyle;
+use clap::Parser;
 
 mod file_conversion;
 mod image_conversion;
@@ -8,59 +9,39 @@ static SEPARATOR: &str = "/";
 #[cfg(windows)]
 static SEPARATOR: &str = "\\";
 
-pub static STOP_CODE: u8 = 0b11111111;
+static STOP_CODE: u8 = 0b11111111;
 static CHUNK_SIZE: usize = 99900000;
 
-fn get_progress_style() -> ProgressStyle {
-    let style_result = ProgressStyle::default_bar()
-        .template("{msg} [{bar:40.cyan/blue}] {pos}/{len} ({eta})");
-    match style_result {
-        Ok(style) => style,
-        Err(err) => {
-            eprintln!("Error creating progress style: {}", err);
-            ProgressStyle::default_bar()
-        }
-    }
+#[derive(Parser)]
+#[clap(version = "0.9.3", author = "Evan R", about = "Encodes files into images and decodes images into files")]
+struct Cli {
+    #[clap(long)]
+    dir: Option<String>,
+    #[clap(long,short)]
+    encode: Option<String>,
+    e: Option<String>,
+    #[clap(long,short)]
+    decode: Option<String>,
+    d: Option<String>,
 }
 
-
 fn main() {
-    // Check if unix or windows
-    // If there are args provided if -e encode else if -d decode the given filename
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() >= 2 {
-        if args[1] == "-e" {
-            if args[3] != "" {
-                std::env::set_current_dir(args[3].trim()).unwrap();
-            }
-            file_conversion::convert_file(&args[2]);
-        } else if args[1] == "-d" {
-            if args[3] != "" {
-                std::env::set_current_dir(args[3].trim()).unwrap();
-            }
-            image_conversion::convert_img(&args[2]);
-        } else { // Enter Drag and Drop mode
-            // Check if arg[1] is an existing directory
-            let dir = std::path::Path::new(&args[1]);
-            if dir.is_dir() {
-                if args.len() == 3 {
-                    std::env::set_current_dir(args[2].trim()).unwrap();
-                }
-                image_conversion::convert_img(&args[1]);
-            }else if dir.is_file() {
-                if args.len() == 3 {
-                    std::env::set_current_dir(args[2].trim()).unwrap();
-                }
-                file_conversion::convert_file(&args[1]);
-            }else {
-                println!("Invalid directory or file");
-                println!("Usage: image_files.exe -e <filename> or image_files.exe -d <filename> or specify a working directory by using image_files.exe -d/e <filename> <directory>");
-            }
-        }
+    let cli = Cli::parse();
+    if let Some(dir) = cli.dir {
+        let dir = dir.trim().replace('"', "").replace("'", "");
+        std::env::set_current_dir(dir).unwrap();
     }
+    if let Some(filename) = cli.encode {
+        let filename = filename.trim().replace('"', "").replace("'", "");
+        file_conversion::convert_file(&filename);
+    } else if let Some(filename) = cli.decode {
+        let filename = filename.trim().replace('"', "").replace("'", "");
+        image_conversion::convert_img(&filename);
+    } 
+    //\\Start the traditional command line interface//\\
     else {
-        // Start with UI
         println!("Welcome to the image file encoder/decoder");
+        println!("continue with the cli below or run image_files.exe -h for help");
         println!("Choose (e)ncode or (d)ecode");
         let mut choice = String::new();
         std::io::stdin().read_line(&mut choice).unwrap();
@@ -95,6 +76,17 @@ fn main() {
             return;
         } else {
             println!("Invalid choice");
+        }
+    }
+}
+fn get_progress_style() -> ProgressStyle {
+    let style_result = ProgressStyle::default_bar()
+        .template("{msg} [{bar:40.cyan/blue}] {pos}/{len} ({eta})");
+    match style_result {
+        Ok(style) => style,
+        Err(err) => {
+            eprintln!("Error creating progress style: {}", err);
+            ProgressStyle::default_bar()
         }
     }
 }
