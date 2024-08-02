@@ -1,4 +1,5 @@
 /target
 /*.zip
-*.png
+/*.png
 /*.txt
+/test_zip
