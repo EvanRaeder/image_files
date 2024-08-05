@@ -1,10 +1,10 @@
 // Remove the invalid statement
 use image::ImageBuffer;
 use indicatif::{MultiProgress, ProgressBar};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use std::fs::File;
 use std::io::{BufReader, Read};
-
 
 use crate::{get_progress_style, SEPARATOR, CHUNK_SIZE, STOP_CODE, MAX_THREADS};
 
@@ -25,6 +25,7 @@ pub fn convert_file(in_file: &str) {
     let m = MultiProgress::new();
     let pb = m.add(ProgressBar::new(size/CHUNK_SIZE as u64));
     pb.set_style(style);
+    let mut chunks = Vec::new();
     loop {
         // Read a chunk of the file
         let bytes_read = file.read(&mut buffer).unwrap();
@@ -54,14 +55,11 @@ pub fn convert_file(in_file: &str) {
     chunks.into_par_iter().for_each(|(chunk, i)| {
         let file_name = format!("{}{}{}", dir_name, SEPARATOR, file_name);
         let file_name = file_name + "{" + &i.to_string() + "}" + ".png";
-        let img = encode_data(chunk,m.clone());
+        let img = encode_data(chunk, m.clone());
         img.save(&file_name).unwrap();
-        // Update the progress bar
-        pb.set_message(format!("Saved {}", file_name));
-        pb.inc(1);
-        i += 1;
-    }
-    pb.finish_with_message(format!("Saved to: {}", dir_name));
+    });
+
+    println!("Saved to: {}", dir_name);
 }
 
 //\\Encode the data into the image//\\
