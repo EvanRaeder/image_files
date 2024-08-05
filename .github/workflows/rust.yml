@@ -46,13 +46,7 @@ jobs:
 
       - name: Extract version from commit message
         id: get_version
-        run: |
-          version=$(git log -1 --pretty=%B | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-          if ($version -eq $null)
-           { version="" }
-          fi
-          echo "::set-output name=version::$version"
-        continue-on-error: true
+        run: echo "::set-output name=version::$(git log -1 --pretty=%B | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
 
       - name: Release
         if: steps.get_version.outputs.version != ''
@@ -63,6 +57,7 @@ jobs:
           name: Release ${{ steps.get_version.outputs.version }}
           body: "Release version ${{ steps.get_version.outputs.version }}"
           prerelease: true
+        continue-on-error: true
   
   Build-ubuntu:
     runs-on: ubuntu-latest
