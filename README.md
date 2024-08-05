@@ -37,7 +37,8 @@ To use the Arg interface, run the executable with the appropriate flags:
 ```sh
 image_files.exe -e <filename> # Encode the specified file
 image_files.exe -d <filename> # Decode the specified file
-image_files.exe -e <filename> -dir <output-dir> # Encode and change working directory
+image_files.exe --encode <filename> -dir <output-dir> # Encode and change working directory
+image_files.exe -h # Show helpfile
 ```
 
 ### Application Interface

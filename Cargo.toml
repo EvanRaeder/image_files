@@ -8,6 +8,8 @@ authors = ["Evan Raeder"]
 clap = { version = "4.5.13", features = ["derive"] }
 image = "0.25.1"
 indicatif = "0.17.8"
+rayon = "1.10.0"
+threadpool = "1.8.1"
 
 [build-dependencies]
 winres = "0.1"
