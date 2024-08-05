@@ -14,7 +14,7 @@ static CHUNK_SIZE: usize = 99900000;
 static MAX_THREADS: usize = 20;
 
 #[derive(Parser)]
-#[clap(version = "0.9.3", author = "Evan R", about = "Encodes files into images and decodes images into files")]
+#[clap(version = "0.9.4", author = "Evan R", about = "Encodes files into images and decodes images into files")]
 struct Cli {
     #[clap(long)]
     dir: Option<String>,
