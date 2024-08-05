@@ -5,7 +5,8 @@ use indicatif::{MultiProgress, ProgressBar};
 use std::fs::File;
 use std::io::{BufReader, Read};
 
-use crate::{get_progress_style, SEPARATOR, CHUNK_SIZE, STOP_CODE};
+
+use crate::{get_progress_style, SEPARATOR, CHUNK_SIZE, STOP_CODE, MAX_THREADS};
 
 //\\Encode the file into the image//\\
 pub fn convert_file(in_file: &str) {
@@ -33,7 +34,24 @@ pub fn convert_file(in_file: &str) {
         pb.set_message(format!("Encoding {}", file_name));
         // Process the chunk
         let chunk = buffer[..bytes_read].to_vec();
-        // Save the image
+        chunks.push((chunk, i));
+        if chunks.len() >= MAX_THREADS {
+            chunks.into_par_iter().for_each(|(chunk, i)| {
+                let file_name = format!("{}{}{}", dir_name, SEPARATOR, file_name);
+                let file_name = file_name + "{" + &i.to_string() + "}" + ".png";
+                let img = encode_data(chunk, m.clone());
+                img.save(&file_name).unwrap();
+            });
+            chunks = Vec::new();
+
+        }
+        pb.inc(1);
+        i += 1;
+    }
+    pb.finish_with_message(format!("Read {} chunks", chunks.len()));
+
+    // complete the last ops
+    chunks.into_par_iter().for_each(|(chunk, i)| {
         let file_name = format!("{}{}{}", dir_name, SEPARATOR, file_name);
         let file_name = file_name + "{" + &i.to_string() + "}" + ".png";
         let img = encode_data(chunk,m.clone());

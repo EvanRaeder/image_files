@@ -11,6 +11,7 @@ static SEPARATOR: &str = "\\";
 
 static STOP_CODE: u8 = 0b11111111;
 static CHUNK_SIZE: usize = 99900000;
+static MAX_THREADS: usize = 20;
 
 #[derive(Parser)]
 #[clap(version = "0.9.3", author = "Evan R", about = "Encodes files into images and decodes images into files")]
