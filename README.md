@@ -6,7 +6,7 @@ This project is aimed at converting files to images so they can be uploaded to h
 
 ## Features
 
-- Bulk operations for managing multiple images at once
+- Rayon file encoding
 - Encode files to .PNG
 - Decode .PNG files back to the original format
 - Command-line interface
