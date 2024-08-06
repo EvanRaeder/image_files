@@ -38,46 +38,57 @@ fn main() {
     } else if let Some(filename) = cli.decode {
         let filename = filename.trim().replace('"', "").replace("'", "");
         image_conversion::convert_img(&filename);
-    } 
-    //\\Start the traditional command line interface//\\
-    else {
-        println!("Welcome to the image file encoder/decoder");
-        println!("continue with the cli below or run image_files.exe -h for help");
-        println!("Choose (e)ncode or (d)ecode");
-        let mut choice = String::new();
-        std::io::stdin().read_line(&mut choice).unwrap();
-        let choice = choice.trim();
-        if choice == "e" {
-            println!("Enter path to the filename to encode");
-            let mut filename = String::new();
-            std::io::stdin().read_line(&mut filename).unwrap();
-            let filename = filename.trim().replace('"', "").replace("'", "");
-            println!("Enter a working directory leave blank for current directory");
-            let mut dir = String::new();
-            std::io::stdin().read_line(&mut dir).unwrap();
-            let dir = dir.trim().replace('"', "").replace("'", "");
-            if dir != "" {
-                std::env::set_current_dir(dir).unwrap();
+    } else {
+        let args: Vec<String> = std::env::args().collect();  
+        let dir = std::path::Path::new(&args[1]);
+        if dir.is_dir() {
+            if args.len() == 3 {
+                std::env::set_current_dir(args[2].trim()).unwrap();
             }
-            file_conversion::convert_file(&filename);
-            return;
-        } else if choice == "d" {
-            println!("Enter the path to filename to decode");
-            let mut filename = String::new();
-            std::io::stdin().read_line(&mut filename).unwrap();
-            let filename = filename.trim().replace('"', "").replace("'", "");
-            println!("Enter a working directory leave blank for current directory");
-            let mut dir = String::new();
-            std::io::stdin().read_line(&mut dir).unwrap();  
-            let dir = dir.trim().replace('"', "").replace("'", "");
-            if dir != "" {
-                std::env::set_current_dir(dir).unwrap();
+            image_conversion::convert_img(&args[1]);
+        } else if dir.is_file() {
+            if args.len() == 3 {
+                std::env::set_current_dir(args[2].trim()).unwrap();
             }
-            image_conversion::convert_img(&filename);
-            return;
+            file_conversion::convert_file(&args[1]);
         } else {
-            println!("Invalid choice");
-        }
+            println!("Welcome to the image file encoder/decoder");
+            println!("continue with the cli below or run image_files.exe -h for help");
+            println!("Choose (e)ncode or (d)ecode");
+            let mut choice = String::new();
+            std::io::stdin().read_line(&mut choice).unwrap();
+            let choice = choice.trim();
+            if choice == "e" {
+                println!("Enter path to the filename to encode");
+                let mut filename = String::new();
+                std::io::stdin().read_line(&mut filename).unwrap();
+                let filename = filename.trim().replace('"', "").replace("'", "");
+                println!("Enter a working directory leave blank for current directory");
+                let mut dir = String::new();
+                std::io::stdin().read_line(&mut dir).unwrap();
+                let dir = dir.trim().replace('"', "").replace("'", "");
+                if dir != "" {
+                    std::env::set_current_dir(dir).unwrap();
+                }
+                file_conversion::convert_file(&filename);
+                return;
+            } else if choice == "d" {
+                println!("Enter the path to filename to decode");
+                let mut filename = String::new();
+                std::io::stdin().read_line(&mut filename).unwrap();
+                let filename = filename.trim().replace('"', "").replace("'", "");
+                println!("Enter a working directory leave blank for current directory");
+                let mut dir = String::new();
+                std::io::stdin().read_line(&mut dir).unwrap();  
+                let dir = dir.trim().replace('"', "").replace("'", "");
+                if dir != "" {
+                    std::env::set_current_dir(dir).unwrap();
+                }
+                image_conversion::convert_img(&filename);
+                return;
+            } else {
+                println!("Invalid choice");
+            }
     }
 }
 fn get_progress_style() -> ProgressStyle {
