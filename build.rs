@@ -12,6 +12,7 @@ fn main() -> io::Result<()> {
             // This path can be absolute, or relative to your crate root.
             .set_icon("Logo.ico")
             .compile()?;
+        static_vcruntime::metabuild();
     }
     Ok(())
 }
