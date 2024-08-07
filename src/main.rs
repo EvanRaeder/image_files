@@ -60,7 +60,7 @@ fn main() {
 }
 fn get_progress_style() -> ProgressStyle {
     let style_result = ProgressStyle::default_bar()
-        .template("{msg} [{bar:40.cyan/blue}] {pos}/{len} ({eta})");
+        .template("{msg} [{bar:40.cyan/blue}] {pos}/{len}");
     match style_result {
         Ok(style) => style,
         Err(err) => {
