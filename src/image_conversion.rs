@@ -17,10 +17,7 @@ pub fn convert_img(input: &str) {
         file_name = file_name.split(SEPARATOR).collect::<Vec<&str>>().last().unwrap().to_owned().to_owned();
         file_name = file_name.split("{0}.").collect::<Vec<&str>>()[0].to_owned();
         std::fs::write(file_name, data).unwrap();
-        return;
-    }
-    //if the file is a directory
-    else {
+    }else {
         let dir = std::path::Path::new(input);
         let entries = std::fs::read_dir(dir).unwrap();
         //sort entries by the number in {}.png in the filename
