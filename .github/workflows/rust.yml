@@ -94,9 +94,7 @@ jobs:
 
       - name: Extract version from commit message
         id: get_version
-        run: echo "::set-output name=version::$(git log -1 --pretty=%B | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
-        continue-on-error: true
-
+        run: version=$(git log -1 --pretty=%B | grep -oE '[0-9]+\.[0-9]+\.[0-9]+') if [ -z "$version" ]; then echo "::set-output name=version::" else echo "::set-output name=version::$version" fi
       - name: Release
         if: steps.get_version.outputs.version != ''
         uses: softprops/action-gh-release@v1
