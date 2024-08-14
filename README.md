@@ -14,7 +14,8 @@ This project is aimed at converting files to images so they can be uploaded to h
 
 ## PreBuilt
 
-Binary releases for windows-latest can be found [here](https://github.com/EvanRaeder/image_files/releases).
+- Windows releases can be installed using `winget install EvanR.ImageFiles`
+- Binary releases for Windows/Ubuntu can be found [here](https://github.com/EvanRaeder/image_files/releases).
 
 ## Installation
 
